@@ -21,6 +21,10 @@ FactoryGirl.define do
     association :quota
   end
 
+  factory :invalid_provider_account, :parent => :provider_account do
+    label nil
+  end
+
   factory :mock_provider_account, :parent => :provider_account do
     association :provider, :factory => :mock_provider
     after_build do |acc|

@@ -47,7 +47,7 @@ describe ProviderAccountsController do
   shared_examples_for "having correct set of credentials" do
     it "should be correct" do
       provider_account.credentials.each do |credential|
-        label = credential.credential_definition.label
+        label = credential.credential_definition.name
         value = credential.value
         xml_provider_account.xpath('//' + label).text.should be_eql(value)
       end
@@ -159,6 +159,8 @@ describe ProviderAccountsController do
 
       context "when using admin credentials" do
 
+        let(:provider) { FactoryGirl.create(:mock_provider) }
+
         before(:each) do
           user = FactoryGirl.create(:admin_permission).user
           mock_warden(user)
@@ -176,7 +178,6 @@ describe ProviderAccountsController do
               get :index, :provider_id => provider.id
             end
 
-            let(:provider) { FactoryGirl.create(:mock_provider) }
             let(:other_provider) { FactoryGirl.create(:mock_provider) }
             let(:other_provider_accounts) do
               3.times do
@@ -305,13 +306,13 @@ describe ProviderAccountsController do
               context "credentials" do
 
                 context "of mock provider" do
-                  let(:provider_account) { FactoryGirl.create(:mock_provider_account); ProviderAccount.last }
+                  #let(:provider_account) { FactoryGirl.create(:mock_provider_account); ProviderAccount.last }
 
                   it_behaves_like "having correct set of credentials"
                 end
 
                 context "of ec2 provider" do
-                  let(:provider_account) { FactoryGirl.create(:ec2_provider_account); ProviderAccount.last }
+                  #let(:provider_account) { FactoryGirl.create(:ec2_provider_account); ProviderAccount.last }
 
                   it_behaves_like "having correct set of credentials"
                 end
@@ -338,11 +339,73 @@ describe ProviderAccountsController do
               it {
                 subject.xpath('//error').size.should be_eql(1)
                 subject.xpath('//error/code').text.should be_eql('RecordNotFound')
-                subject.xpath('//error/message').text.should be_eql("Couldn't find ProviderAccount with ID=1")
+                #subject.xpath('//error/message').text.should be_eql("Couldn't find ProviderAccount with ID=1")
               }
             end
           end
         end # #show
+
+        describe "#create" do
+
+          before(:each) do
+            provider_account_hash = { :label => provider_account.label,
+              :credentials => {}
+            }
+            provider_account.credentials.each do |credential|
+              label = credential.credential_definition.name
+              value = credential.value
+              provider_account_hash[ :credentials ][ label.to_sym ] = value
+            end
+            post :create, :provider_id => provider.id, :provider_account => provider_account_hash
+          end
+          context "with correct parameters" do
+
+            let(:provider_account) { FactoryGirl.build(:mock_provider_account, :provider => provider) }
+
+            it_behaves_like "http OK"
+            it_behaves_like "responding with XML"
+
+            context "XML body" do
+              # TODO: implement more attributes checks
+              #subject { Hash.from_xml(response.body) }
+              subject { Nokogiri::XML(response.body) }
+              let(:xml_provider_account) { subject.xpath("provider_account").first }
+              it "should have correct provider account" do
+                xml_provider_account.xpath('name').text.should be_eql(provider_account.name)
+              end
+              context "credentials" do
+
+                context "of mock provider" do
+                  #let(:provider_account) { FactoryGirl.build(:mock_provider_account); ProviderAccount.last }
+
+                  it_behaves_like "having correct set of credentials"
+                end
+
+                context "of ec2 provider" do
+                  #let(:provider_account) { FactoryGirl.build(:ec2_provider_account); ProviderAccount.last }
+
+                  it_behaves_like "having correct set of credentials"
+                end
+              end
+            end
+          end
+
+          context "with incorrect parameters" do
+
+            let(:provider_account) { FactoryGirl.build(:invalid_provider_account) }
+
+            it_behaves_like "http Bad Request"
+            it_behaves_like "responding with XML"
+
+            context "XML body" do
+              subject { Nokogiri::XML(response.body) }
+              it "should have some errors" do
+                subject.xpath('//errors').size.should be_eql(1)
+                subject.xpath('//errors/error').size.should >= 1
+              end
+            end
+          end
+        end
       end
 
     end
