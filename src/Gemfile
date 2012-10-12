@@ -40,4 +40,5 @@ group :development, :test do
   gem 'vcr', '< 2.0.0'
   gem 'webmock'
   gem 'launchy'
+  gem 'rspec_api_documentation'
 end

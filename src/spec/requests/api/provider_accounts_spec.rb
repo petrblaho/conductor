@@ -1,4 +1,35 @@
 require 'spec_helper'
+require 'rspec_api_documentation/dsl'
+include Warden::Test::Helpers
+
+resource "Provider Accounts" do
+
+  before(:each) do
+    user = FactoryGirl.create(:admin_user, :password => 'password', :password_confirmation => 'password')
+    FactoryGirl.create(:admin_permission, :entity => user.entity)
+    #login_as(user)
+  end
+
+  header "Accept", "application/xml"
+  header "Content-Type", "application/xml"
+  #header "Authorization", "Basic #{ActiveSupport::Base64.encode64('admin:password')}"
+  header "Authorization", ActionController::HttpAuthentication::Basic.encode_credentials('admin', 'password')
+
+  get "/provider_accounts" do
+    let(:number_of_resources) { 3 }
+    let!(:provider_accounts) { ProviderAccount.destroy_all; number_of_resources.times{ FactoryGirl.create(:mock_provider_account) }; ProviderAccount.all }
+    example_request "Getting a list of Provider Accounts" do
+      expected_xml = "<provider_accounts>\n"
+      expected_xml += provider_accounts.map do |provider_account|
+        "<provider_account href='http://example.org/api/provider_accounts/#{provider_account.id}' id='#{provider_account.id}'>\n</provider_account>\n\n"
+      end.join('')
+      expected_xml += "</provider_accounts>\n"
+      Nokogiri::XML(response_body).to_s.should == (Nokogiri::XML(expected_xml).to_s)
+      status.should == 200
+    end
+  end
+
+end
 
 describe "ProviderAccounts" do
   let(:headers) { {

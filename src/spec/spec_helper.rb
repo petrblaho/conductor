@@ -136,3 +136,12 @@ RSpec.configure do |config|
   end
 
 end
+
+RspecApiDocumentation.configure do |config|
+  config.docs_dir = Rails.root.join("public", "docs")
+  config.format = [ :json, :html, :wurl ]
+  config.api_name = "Conductor API Documentation"
+
+  config.url_prefix = "/docs"
+  config.curl_host = "http://localhost:3000/api"
+end
