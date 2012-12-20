@@ -34,3 +34,13 @@ Feature: Manage Provider Types via API
     When I attempt to delete the provider type
     Then I should receive Not Found error
     And no provider type should be deleted
+
+  Scenario: Create a new Provider Type via XML
+    When I create provider type with correct data
+    Then I should receive OK message
+    And the provider type should be created
+
+  Scenario: Attempt to create new Provider Type with bad request
+    When I attempt to create provider type with incorrect data
+    Then I should receive Bad Request error
+    And the provider type should not be created

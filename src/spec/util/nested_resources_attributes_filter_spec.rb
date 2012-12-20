@@ -22,8 +22,8 @@ describe NestedResourcesAttributesFilter do
 
     let(:array_of_resources) do
       [
-        :credential_definition => { :name => 'cd1' },
-        :credential_definition => { :name => 'cd2' },
+        { :name => 'cd1' },
+        { :name => 'cd2' },
       ]
     end
 
@@ -47,7 +47,11 @@ describe NestedResourcesAttributesFilter do
           {
             :provider_type =>
             {
-              :credential_definitions => array_of_resources
+              :credential_definitions =>
+              {
+                :credential_definition => array_of_resources
+              },
+              :do_not_transform_key => :whatever,
             }
           }
         end
@@ -56,6 +60,7 @@ describe NestedResourcesAttributesFilter do
         it "transforms the link" do
           params[:provider_type][:credential_definitions].should == nil
           params[:provider_type][:credential_definitions_attributes].should == array_of_resources
+          params[:provider_type][:do_not_transform_key].should == :whatever
         end
       end
 
@@ -63,9 +68,10 @@ describe NestedResourcesAttributesFilter do
         let(:params) do
           {
             :provider_type => {
-            :credential_definitions => array_of_resources,
-            :some_resources => 456,
-          }
+              :credential_definitions => { :credential_definition => array_of_resources },
+              :some_resources => { :some_resource => 456 },
+              :do_not_transform_key => :whatever,
+            }
           }
         end
         let(:nested_resources) { { :provider_type => [:credential_definitions, :some_resources] } }
@@ -74,17 +80,19 @@ describe NestedResourcesAttributesFilter do
           params[:provider_type][:credential_definitions].should == nil
           params[:provider_type][:credential_definitions_attributes].should == array_of_resources
           params[:provider_type][:some_resources].should == nil
-          params[:provider_type][:some_resources_attributes].should == 456
+          params[:provider_type][:some_resources_attributes].should == [ 456 ]
+          params[:provider_type][:do_not_transform_key].should == :whatever
         end
       end
 
       context "for combined single- and double-nested resources" do
         let(:params) do
           { :catalog => {
-              :pools => array_of_resources,
-              :some_resources => {
-                :double_nested_1 => 123,
-                :double_nested_2 => 456,
+              :pools => { :pool => array_of_resources },
+              :nesting => {
+                :first_resources => { :first_resource => 123 },
+                :second_resources => { :second_resource => 456 },
+                :third_not_transformed => :whatever,
               }
             }
           }
@@ -93,7 +101,7 @@ describe NestedResourcesAttributesFilter do
           {
             :catalog => [
               :pools,
-              { :some_resources => [:double_nested_1, :double_nested_2] }
+              { :nesting => [:first_resources, :second_resources] }
           ]
           }
         end
@@ -101,10 +109,11 @@ describe NestedResourcesAttributesFilter do
         it "transforms the links" do
           params[:catalog][:pools].should == nil
           params[:catalog][:pools_attributes].should == array_of_resources
-          params[:catalog][:some_resources][:double_nested_1].should == nil
-          params[:catalog][:some_resources][:double_nested_1_attributes].should == 123
-          params[:catalog][:some_resources][:double_nested_2].should == nil
-          params[:catalog][:some_resources][:double_nested_2_attributes].should == 456
+          params[:catalog][:nesting][:first_resources].should == nil
+          params[:catalog][:nesting][:first_resources_attributes].should == [ 123 ]
+          params[:catalog][:nesting][:second_resources].should == nil
+          params[:catalog][:nesting][:second_resources_attributes].should == [ 456 ]
+          params[:catalog][:nesting][:third_not_transformed].should == :whatever
         end
       end
 

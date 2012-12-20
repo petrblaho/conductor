@@ -1,0 +1,13 @@
+group :development do
+  gem 'guard'
+  gem 'guard-bundler'
+  gem 'guard-spork'
+  gem 'guard-rspec'
+  gem 'guard-cucumber'
+  gem 'guard-ctags-bundler'
+  gem 'rb-inotify'
+  gem 'fuubar'
+  gem 'fuubar-cucumber'
+  gem 'wirble'
+  gem 'hirb'
+end

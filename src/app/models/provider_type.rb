@@ -33,6 +33,8 @@ class ProviderType < ActiveRecord::Base
   has_many :providers
   has_many :credential_definitions, :dependent => :destroy
 
+  accepts_nested_attributes_for :credential_definitions
+
   validates_presence_of :name
   validates_uniqueness_of :name
   validates_presence_of :deltacloud_driver

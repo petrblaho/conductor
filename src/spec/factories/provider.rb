@@ -21,8 +21,8 @@ FactoryGirl.define do
     provider_type { Factory.build :provider_type }
     url { |p| "http://www." + p.name + ".com/api" }
     after_build do |p|
-      p.stub(:valid_framework?).and_return(true)
-      p.stub(:valid_provider?).and_return(true)
+#      p.stub(:valid_framework?).and_return(true)
+#      p.stub(:valid_provider?).and_return(true)
     end
   end
 

@@ -17,10 +17,9 @@
 # Before filter for controllers that handle REST API requests. Conductor uses
 # linking to nested resources like
 # <credential_definitions><credential_definition>...</credential_definition><credential_definition>...</credential_definition></credential_definitions>
-# (resulting in :credential_definitions => [ { :credential_definition => ... }, { :credential_definition => ... } ] in request params hash)
+# (resulting in :credential_definitions => { :credential_definition => [ { ... }, { ... } ] in request params hash)
 # but ActiveRecord expects nested resources attributes like
-# <credential_definitions_attributes><credential_definition>...</credential_definition><credential_definition>...</credential_definition></credential_definitions_attributes>
-# (resulting in :credential_definitions_attributes => [ { :credential_definition => ... }, { :credential_definition => ... } ] in request params hash)
+# :credential_definitions_attributes => [ { :credential_definition => ... }, { :credential_definition => ... } ]
 #
 # This before filter operates on request params hash to rewrite it from our
 # format to ActiveRecord-accept_nested_attributes_for-friendly format (for nested collections).
@@ -31,8 +30,8 @@
 #  before_filter NestedResourcesAttributesFilter.new({ :provider_type => :credential_definitions }),
 #                :only => [:create, :update]
 #
-# would transform { :provider_type => { :credential_definitions => [ { :credential_definition => ... }, { :credential_definition => ... } ]}}
-# into            { :provider_type => { :credential_definitions_attributes => [ { :credential_definition => ... }, { :credential_definition => ... } ]}}
+# would transform { :provider_type => { :credential_definitions => { :credential_definition => [ { ... }, { ... } ] } } }
+# into            { :provider_type => { :credential_definitions_attributes => [ { ... }, { ... } ]}}
 #
 # See the specs in spec/util/nested_resources_attributes_filter_spec.rb for more examples.
 #
@@ -57,7 +56,9 @@ class NestedResourcesAttributesFilter
     when Symbol # then transform the link (last level of recursion)
       return if subparams[subkeys] == nil
 
-      subparams[:"#{subkeys}_attributes"] = subparams.delete(subkeys)
+      value = attributes = subparams.delete(subkeys)
+      value = [ attributes.delete(subkeys.to_s.singularize.to_sym) ].flatten if attributes.is_a?(Hash)
+      subparams[:"#{subkeys}_attributes"] = value
     when Array # then process each item
       subkeys.each do |item|
         transform_nested_resources_recursively(subparams, item)

@@ -57,3 +57,36 @@ When /^I attempt to delete the provider type$/ do
   header 'Accept', 'application/xml'
   delete api_provider_type_path(@provider_type)
 end
+
+When /^I create provider type with correct data$/ do
+  header 'Accept', 'application/xml'
+  header 'Content-Type', 'application/xml'
+
+  @new_provider_type = FactoryGirl.build(:provider_type_with_credential_definitions)
+
+  credential_definitions_xml = ''
+  @new_provider_type.credential_definitions.each do |credential_definition|
+    credential_definitions_xml +=  "<credential_definition>"
+
+    ['name', 'label', 'input_type'].each do |node|
+      credential_definitions_xml +=  "<#{node}>#{credential_definition.send(node.to_s)}</#{node}>"
+    end
+
+    credential_definitions_xml +=  "</credential_definition>"
+  end
+
+  xml_provider_type = %Q[<?xml version="1.0" encoding="UTF-8"?>
+    <provider_type>
+      <name>#{@new_provider_type.name}</name>
+      <deltacloud_driver>#{@new_provider_type.deltacloud_driver}</deltacloud_driver>
+      <ssh_user>#{@new_provider_type.ssh_user}</ssh_user>
+      <home_dir>#{@new_provider_type.home_dir}</home_dir>
+      #{credential_definitions_xml}
+    </provider_type>
+  ]
+  post api_provider_types_path, xml_provider_type
+end
+
+When /^I attempt to create provider type with incorrect data$/ do
+  pending # express the regexp above with the code you wish you had
+end

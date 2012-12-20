@@ -29,8 +29,13 @@ describe "ProviderTypes" do
       subject { Nokogiri::XML(response.body) }
       it "should have correct provider type" do
         xml_provider_type = subject.xpath("//provider_type")
-        xml_provider_type.xpath('@id').text.should be_eql(provider_type.id.to_s)
-        xml_provider_type.xpath('@href').text.should be_eql(api_provider_type_url(provider_type))
+        if provider_type.new_record?
+          xml_provider_type.xpath('@id').text.should_not be_empty
+          xml_provider_type.xpath('@href').text.should_not be_empty
+        else
+          xml_provider_type.xpath('@id').text.should be_eql(provider_type.id.to_s)
+          xml_provider_type.xpath('@href').text.should be_eql(api_provider_type_url(provider_type))
+        end
         # it should have details of provider_types
         %w{name deltacloud_driver ssh_user home_dir}.each do |element|
           xml_provider_type.xpath(element).text.should be_eql(provider_type.attributes[element].to_s)
@@ -40,15 +45,19 @@ describe "ProviderTypes" do
           xml_provider_type.xpath(element).should be_empty
         end
       end
+
       it "should have correct set of credential definitions" do
         xml_credential_definitions = subject.xpath("//provider_type/credential_definitions")
-        # puts provider_type.inspect
-        # puts provider_type.credential_definitions.inspect
         provider_type.credential_definitions.each do |credential_definition|
-          xml_credential_definition = xml_credential_definitions.xpath("//credential_definition[@id=\"#{credential_definition.id}\"]")
+          xml_credential_definition = xml_credential_definitions.xpath("//credential_definition[name/text()=\"#{credential_definition.name}\"]")
           # it should have details for credential definition
+          if credential_definition.new_record?
+            xml_credential_definition.xpath('@id').text.should_not be_empty
+          else
+            xml_credential_definition.xpath('@id').text.should be_eql(credential_definition.id.to_s)
+          end
           %w{name label input_type}.each do |element|
-            xml_credential_definition.xpath(element).text.should be_eql(credential_definition.attributes[element].to_s)
+            xml_credential_definition.xpath(element).text.should ==(credential_definition.attributes[element].to_s)
           end
         end
       end
@@ -98,13 +107,13 @@ describe "ProviderTypes" do
 
     context "provider type does not exist" do
 
-       before(:each) do
-         provider_type.destroy
-         get "/api/provider_types/#{provider_type.id}", nil, headers
-       end
+      before(:each) do
+        provider_type.destroy
+        get "/api/provider_types/#{provider_type.id}", nil, headers
+      end
 
-       it_behaves_like "http Not Found"
-       it_behaves_like "responding with XML"
+      it_behaves_like "http Not Found"
+      it_behaves_like "responding with XML"
     end
   end
 
@@ -141,6 +150,63 @@ describe "ProviderTypes" do
       it "should not delete any provider type" do
         ProviderType.count.should eql(@provider_type_count)
       end
+    end
+  end
+
+  describe "POST /api/provider_types" do
+    let(:xml) do
+
+    context "with correct data" do
+      let(:provider_type) { FactoryGirl.build(:provider_type_with_credential_definitions) }
+        value = ""
+        value << "<provider_type>"
+        value << "<name>#{provider_type.name}</name>"
+        value << "<deltacloud_driver>#{provider_type.deltacloud_driver}</deltacloud_driver>"
+        value << "<ssh_user>#{provider_type.ssh_user}</ssh_user>"
+        value << "<home_dir>#{provider_type.home_dir}</home_dir>"
+
+        value << "<credential_definitions>"
+        provider_type.credential_definitions.each do |credential_definition|
+          value << "<credential_definition>"
+          value << "<name>#{credential_definition.name}</name>"
+          value << "<label>#{credential_definition.label}</label>"
+          value << "<input_type>#{credential_definition.input_type}</input_type>"
+          value << "</credential_definition>"
+        end
+        value << "</credential_definitions>"
+
+        value << "</provider_type>"
+        value
+      end
+
+      before(:each) do
+        @provider_type_count = ProviderType.count
+        @credential_definition_count = CredentialDefinition.count
+        provider_type
+        post "/api/provider_types", xml, headers
+      end
+
+      it "should create new provider type" do
+        ProviderType.count.should be_eql(@provider_type_count + 1)
+      end
+
+      it "should create new credential definitions" do
+        CredentialDefinition.count.should be_eql(@credential_definition_count + provider_type.credential_definitions.size)
+      end
+
+      it_behaves_like "http Created"
+      it_behaves_like "responding with XML"
+
+      context "XML body" do
+        it_behaves_like "having XML with provider type"
+      end
+
+    end
+
+    context "with incorrect data" do
+
+
+
     end
   end
 end

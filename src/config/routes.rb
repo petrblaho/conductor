@@ -307,7 +307,7 @@ Conductor::Application.routes.draw do
       resources :provider_accounts, :only => [:index, :create]
     end
     resources :provider_accounts, :only => [:index, :create, :show, :update, :destroy]
-    resources :provider_types, :only => [:index, :show, :destroy]
+    resources :provider_types, :only => [:index, :show, :destroy, :create]
     resources :hardware_profiles, :only => [:index, :show, :destroy, :create]
     resources :pools, :only => [:index, :show, :create, :update, :destroy] do
       resources :deployments, :only => [:index]

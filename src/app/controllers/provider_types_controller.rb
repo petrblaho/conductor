@@ -16,6 +16,7 @@
 
 class ProviderTypesController < ApplicationController
   before_filter :require_user
+  before_filter NestedResourcesAttributesFilter.new(:provider_type => :credential_definitions), :only => :create
 
   def index
     @provider_types = ProviderType.all
@@ -44,4 +45,29 @@ class ProviderTypesController < ApplicationController
       end
     end
   end
+
+  def create
+    @provider_type = ProviderType.new(params[:provider_type])
+
+    # links each new Credential Definition with new Provider type
+    # so validations do not fail
+    # accept_nested_attributes_for do not do this - why?
+    @provider_type.credential_definitions.each do |cd|
+      cd.provider_type = @provider_type
+    end
+
+    if @provider_type.save
+      respond_to do |format|
+        format.xml { render :show, :status => :created }
+      end
+    else
+      respond_to do |format|
+        format.xml  { render :template => 'api/validation_error',
+                             :status => :unprocessable_entity,
+                             :locals => { :errors => @provider_type.errors }}
+        #format.xml { render :text => "#{request.inspect}\n\n#{params[:provider_type].inspect}\n\n#{@provider_type.errors.inspect}" }
+      end
+    end
+  end
+
 end

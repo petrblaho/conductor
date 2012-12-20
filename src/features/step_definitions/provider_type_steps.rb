@@ -16,7 +16,7 @@
 Then /^there should be these provider types:$/ do |table|
   types = @xml_response.root.xpath('/provider_types/provider_type').map do |n|
     {:name              => n.xpath('name').text,
-     :deltacloud_driver => n.xpath('deltacloud_driver').text}
+      :deltacloud_driver => n.xpath('deltacloud_driver').text}
   end
   table.hashes.each do |hash|
     p = types.find {|n| n[:name] == hash[:name]}
@@ -51,4 +51,12 @@ Given /^the specified provider type does not exist in the system$/ do
   @provider_type = FactoryGirl.create(:provider_type)
   ProviderType.destroy(@provider_type.id)
   ProviderType.where(:id => @provider_type.id).should be_empty
+end
+
+Then /^the provider type should be created$/ do
+  pending # express the regexp above with the code you wish you had
+end
+
+Then /^the provider type should not be created$/ do
+  pending # express the regexp above with the code you wish you had
 end
